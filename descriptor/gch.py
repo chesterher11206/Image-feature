@@ -2,7 +2,7 @@ import cv2
 from .base import Descriptor
 
 
-class Histogram(Descriptor):
+class GCH(Descriptor):
     def __init__(self, bins):
         self.bins = bins
 

@@ -1,7 +1,8 @@
 import os
 import pickle
 import numpy as np
-from descriptor.histogram import Histogram
+from descriptor.gch import GCH
+from descriptor.rch import RCH
 from descriptor.gabor import Gabor
 from descriptor.SIFT import SIFT
 
@@ -42,22 +43,27 @@ def save_feature(features, filename):
 
 def main():
     # COLOR FEATURES
-    # descriptor = Histogram([4, 4, 4])
-    # descriptor.set_database(DB_PATH)
-    # descriptor.extract_features()
-    # descriptor.save_features(os.path.join(FEATURE_PATH, 'gch.p'))
+    descriptor = GCH([12, 12, 12])
+    descriptor.set_database(DB_PATH)
+    descriptor.extract_features()
+    descriptor.save_features(os.path.join(FEATURE_PATH, 'gch.p'))
+
+    descriptor = RCH([12, 12, 12], 4)
+    descriptor.set_database(DB_PATH)
+    descriptor.extract_features()
+    descriptor.save_features(os.path.join(FEATURE_PATH, 'rch.p'))
 
     # TEXTURE FEATURES
-    # descriptor = Gabor([7, 9, 11, 13, 15, 17], np.arange(0, np.pi, np.pi / 4))
-    # descriptor.set_database(DB_PATH)
-    # descriptor.extract_features()
-    # descriptor.save_features(os.path.join(FEATURE_PATH, 'gabor.p'))
+    descriptor = Gabor([7, 9, 11, 13, 15, 17], np.arange(0, np.pi, np.pi / 4))
+    descriptor.set_database(DB_PATH)
+    descriptor.extract_features()
+    descriptor.save_features(os.path.join(FEATURE_PATH, 'gabor.p'))
 
     # LOCAL FEATURES
-    descriptor = SIFT()
+    descriptor = SIFT(100)
     descriptor.set_database(DB_PATH)
-    descriptor.extract_features(os.path.join(FEATURE_PATH, 'sift.p'))
-    # descriptor.save_features(os.path.join(FEATURE_PATH, 'sift.p'))
+    descriptor.extract_features()
+    descriptor.save_features(os.path.join(FEATURE_PATH, 'sift.p'))
 
 
 if __name__ == '__main__':

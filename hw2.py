@@ -4,21 +4,23 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import euclidean
+from scipy.spatial.distance import mahalanobis as mahadist
 
 ASC = 'ascend'
 DESC = 'descend'
 
 FEATURE_PATH = 'features'
 
-COLOR_FEATURE_FILE = 'gch.p'
+COLOR_FEATURE_FILE = 'rch.p'
+TEXTURE_FEATURE_FILE = 'gabor.p'
+LOCAL_FEATURE_FILE = 'sift.p'
+
 HISTCMP_METHODS = {
 	'Correlation': (cv2.HISTCMP_CORREL, DESC),
 	'Chi-Squared': (cv2.HISTCMP_CHISQR, ASC),
 	'Intersection': (cv2.HISTCMP_INTERSECT, DESC),
 	'Hellinger': (cv2.HISTCMP_BHATTACHARYYA, ASC),
 }
-
-TEXTURE_FEATURE_FILE = 'gabor.p'
 
 
 def leave_one_out(features, similarity_func, orderby=ASC):
@@ -75,17 +77,38 @@ def rank2ap(result_rank, target_category):
 
     return np.mean(retrieve_precision)
 
+def get_invconv(features):
+    features_variable = dict()
+    for category in features.keys():
+        for index in features[category].keys():
+            for i, f in enumerate(features[category][index]):
+                if i not in features_variable.keys():
+                    features_variable[i] = []
+                features_variable[i].append(f)
+
+    features_variable_list = []
+    for key in features_variable.keys():
+        features_variable_list.append(features_variable[key])
+
+    inv_conv = np.linalg.inv(np.cov(np.array(features_variable_list)))
+    return inv_conv
+
+def maha_dist(query, feature, inv_conv):
+    return maha_dist(query, feature, inv_conv)
+
+
 def main():
     # COLOR FEATURES:
-    # feature_file = COLOR_FEATURE_FILE
-    # method, orderby = HISTCMP_METHODS['Intersection']
-    # similarity_func = lambda query, feature: cv2.compareHist(query, feature, method)
+    feature_file = RCH_FEATURE_FILE
+    with open(os.path.join(FEATURE_PATH, feature_file), 'rb') as fp:
+        features = pickle.load(fp)
 
-    # with open(feature_file, 'rb') as fp:
-    #     features = pickle.load(fp)
-    # map_across_dataset, map_rank = leave_one_out(features, similarity_func, orderby)
-    # print(map_across_dataset)
-    # print(map_rank[0], map_rank[1])
+    method, orderby = HISTCMP_METHODS['Intersection']
+    similarity_func = lambda query, feature: cv2.compareHist(query, feature, method)
+    map_across_dataset, map_rank = leave_one_out(features, similarity_func, orderby)
+    print(map_across_dataset)
+    print(map_rank[0], map_rank[1])
+    print(map_rank[-2], map_rank[-1])
 
     # TEXTURE FEATURES:
     feature_file = TEXTURE_FEATURE_FILE
@@ -96,6 +119,19 @@ def main():
     map_across_dataset, map_rank = leave_one_out(features, similarity_func, ASC)
     print(map_across_dataset)
     print(map_rank[0], map_rank[1])
+    print(map_rank[-2], map_rank[-1])
+
+    # LOCAL FEATURES:
+    feature_file = LOCAL_FEATURE_FILE
+    with open(os.path.join(FEATURE_PATH, feature_file), 'rb') as fp:
+        features = pickle.load(fp)
+
+    method, orderby = HISTCMP_METHODS['Intersection']
+    similarity_func = lambda query, feature: cv2.compareHist(query, feature, method)
+    map_across_dataset, map_rank = leave_one_out(features, similarity_func, orderby)
+    print(map_across_dataset)
+    print(map_rank[0], map_rank[1])
+    print(map_rank[-2], map_rank[-1])
 
     # for key in data.keys():
     #     k = plt.bar(np.arange(64), data[key]['1'], .5)
