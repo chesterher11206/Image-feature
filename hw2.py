@@ -2,9 +2,9 @@ import os
 import pickle
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
+from prettytable import PrettyTable
 from scipy.spatial.distance import euclidean
-from scipy.spatial.distance import mahalanobis as mahadist
+
 
 ASC = 'ascend'
 DESC = 'descend'
@@ -22,6 +22,12 @@ HISTCMP_METHODS = {
 	'Hellinger': (cv2.HISTCMP_BHATTACHARYYA, ASC),
 }
 
+def image_extract(feature_file, similarity_func, orderby):
+    with open(os.path.join(FEATURE_PATH, feature_file), 'rb') as fp:
+        features = pickle.load(fp)
+    map_across_dataset, map_rank = leave_one_out(features, similarity_func, orderby)
+
+    return (map_across_dataset, map_rank[0], map_rank[1], map_rank[-1], map_rank[-2])
 
 def leave_one_out(features, similarity_func, orderby=ASC):
     map_per_category = dict()
@@ -77,66 +83,36 @@ def rank2ap(result_rank, target_category):
 
     return np.mean(retrieve_precision)
 
-def get_invconv(features):
-    features_variable = dict()
-    for category in features.keys():
-        for index in features[category].keys():
-            for i, f in enumerate(features[category][index]):
-                if i not in features_variable.keys():
-                    features_variable[i] = []
-                features_variable[i].append(f)
-
-    features_variable_list = []
-    for key in features_variable.keys():
-        features_variable_list.append(features_variable[key])
-
-    inv_conv = np.linalg.inv(np.cov(np.array(features_variable_list)))
-    return inv_conv
-
-def maha_dist(query, feature, inv_conv):
-    return maha_dist(query, feature, inv_conv)
+def build_table_row(title, result):
+    table_row = [title, result[0]]
+    for i in np.array(result)[1:]:
+        table_row.append(f'{i[1]}: {i[0]}')
+    return table_row
 
 
 def main():
     # COLOR FEATURES:
-    feature_file = RCH_FEATURE_FILE
-    with open(os.path.join(FEATURE_PATH, feature_file), 'rb') as fp:
-        features = pickle.load(fp)
-
+    feature_file = COLOR_FEATURE_FILE
     method, orderby = HISTCMP_METHODS['Intersection']
     similarity_func = lambda query, feature: cv2.compareHist(query, feature, method)
-    map_across_dataset, map_rank = leave_one_out(features, similarity_func, orderby)
-    print(map_across_dataset)
-    print(map_rank[0], map_rank[1])
-    print(map_rank[-2], map_rank[-1])
+    color_result = image_extract(feature_file, similarity_func, orderby)
 
     # TEXTURE FEATURES:
     feature_file = TEXTURE_FEATURE_FILE
     similarity_func = lambda query, feature: euclidean(query, feature)
-
-    with open(os.path.join(FEATURE_PATH, feature_file), 'rb') as fp:
-        features = pickle.load(fp)
-    map_across_dataset, map_rank = leave_one_out(features, similarity_func, ASC)
-    print(map_across_dataset)
-    print(map_rank[0], map_rank[1])
-    print(map_rank[-2], map_rank[-1])
+    texture_result = image_extract(feature_file, similarity_func, ASC)
 
     # LOCAL FEATURES:
     feature_file = LOCAL_FEATURE_FILE
-    with open(os.path.join(FEATURE_PATH, feature_file), 'rb') as fp:
-        features = pickle.load(fp)
-
     method, orderby = HISTCMP_METHODS['Intersection']
     similarity_func = lambda query, feature: cv2.compareHist(query, feature, method)
-    map_across_dataset, map_rank = leave_one_out(features, similarity_func, orderby)
-    print(map_across_dataset)
-    print(map_rank[0], map_rank[1])
-    print(map_rank[-2], map_rank[-1])
+    local_result = image_extract(feature_file, similarity_func, orderby)
 
-    # for key in data.keys():
-    #     k = plt.bar(np.arange(64), data[key]['1'], .5)
-    #     plt.grid(True)
-    #     plt.show()
+    result_table = PrettyTable(['Method', 'MAP', 'Best First', 'Best Second', 'Worst First', 'Worst Second'])
+    result_table.add_row(build_table_row('Color', color_result))
+    result_table.add_row(build_table_row('Texture', texture_result))
+    result_table.add_row(build_table_row('Local', local_result))
+    print(result_table)
 
 
 if __name__ == '__main__':

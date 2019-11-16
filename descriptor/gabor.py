@@ -30,7 +30,7 @@ class Gabor(Descriptor):
 
     def build_filters(self):
         filters = []
-        for rotation in self.rotations: #gabor方向，0°，45°，90°，135°，共四个
+        for rotation in self.rotations:
             for scale in self.scales: 
                 kernel = cv2.getGaborKernel((scale, scale), 1.0, rotation, np.pi / 2.0, 0.5, 0, ktype=cv2.CV_32F)
                 kernel /= 1.5 * kernel.sum()

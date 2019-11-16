@@ -10,45 +10,16 @@ from descriptor.SIFT import SIFT
 DB_PATH = 'database'
 FEATURE_PATH = 'features'
 
-def read_database():
-    database_path = 'database'
-
-    for root, subdirs, files in os.walk(database_path):
-        for subdir in subdirs:
-            print(subdir)
-            subdir_path = os.path.join(root, subdir)
-            for subdir_root, subdir_subdirs, subdir_files in os.walk(subdir_path):
-                for subdir_file in subdir_files:
-                    ext = os.path.splitext(subdir_file)[-1]
-                    if ext != '.jpg' and ext != '.jpeg':
-                        continue
-
-                    subdir_file_path = os.path.join(subdir_root, subdir_file)
-                    file_index = os.path.splitext(subdir_file)[0].split('_')[-1]
-
-                    yield subdir_file_path, subdir, file_index
-
-def extract_feature(descriptor):
-    features = dict()
-
-    for image_path, image_category, image_index in read_database():
-        if image_category not in features:
-            features[image_category] = dict()
-        feature = descriptor.describe(image_path)
-        features[image_category][image_index] = feature
-
-def save_feature(features, filename):
-    with open(filename, 'wb') as fp:
-        pickle.dump(features, fp)
-
 def main():
     # COLOR FEATURES
-    descriptor = GCH([12, 12, 12])
+    # GCH: Global Color Histogram
+    descriptor = GCH([12, 12, 12])  # each channel quantized into 12 part
     descriptor.set_database(DB_PATH)
     descriptor.extract_features()
     descriptor.save_features(os.path.join(FEATURE_PATH, 'gch.p'))
 
-    descriptor = RCH([12, 12, 12], 4)
+    # RCH: Regional Color Histogram
+    descriptor = RCH([12, 12, 12], 4) # each channel quantize into 12 part, each image divided into 4*4 subimage
     descriptor.set_database(DB_PATH)
     descriptor.extract_features()
     descriptor.save_features(os.path.join(FEATURE_PATH, 'rch.p'))
@@ -60,7 +31,7 @@ def main():
     descriptor.save_features(os.path.join(FEATURE_PATH, 'gabor.p'))
 
     # LOCAL FEATURES
-    descriptor = SIFT(100)
+    descriptor = SIFT(100) # cluster SIFT to 100 visual words by KMeans
     descriptor.set_database(DB_PATH)
     descriptor.extract_features()
     descriptor.save_features(os.path.join(FEATURE_PATH, 'sift.p'))
